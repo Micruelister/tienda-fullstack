@@ -1,0 +1,65 @@
+/* Regla para todo el cuerpo de la página */
+body {
+    font-family: Arial, sans-serif; /* Cambia la fuente a una más limpia */
+    margin: 40px; /* Añade un poco de espacio en los bordes */
+    background-color: #67e9c8; /* Un color de fondo gris muy claro */
+}
+
+/* Regla para el contenedor principal de los productos */
+.contenedor-productos {
+    display: flex; /* ¡Esto es importante! Pone los productos uno al lado del otro */
+    gap: 20px; /* Añade un espacio de 20px entre cada producto */
+}
+
+/* Regla para cada tarjeta de producto individual */
+.producto-card {
+    background-color: rgb(255, 255, 255); /* Fondo blanco para la tarjeta */
+    border: 1px solid #ffffff; /* Un borde gris claro */
+    border-radius: 8px; /* Redondea las esquinas */
+    padding: 20px; /* Añade espacio interior para que el texto no toque los bordes */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Una sombra sutil para darle profundidad */
+    text-align: center; /* Centra el texto dentro de la tarjeta */
+}
+/* --- Estilos para los Mensajes Flash --- */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+/* Color para mensajes de éxito (verdes) */
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+/* Color para mensajes de error o peligro (rojos) */
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* Color para mensajes de advertencia (amarillos) */
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+/* --- Estilos para la Animación de Desvanecimiento --- */
+/* Por defecto, los mensajes son completamente visibles */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    opacity: 1; /* Completamente visible */
+    transition: opacity 0.5s ease-out; /* La animación durará 0.5s con una suave desaceleración */
+}
+
+/* Cuando le añadimos la clase 'fade-out', se vuelve invisible */
+.alert.fade-out {
+    opacity: 0; /* Completamente invisible */
+}

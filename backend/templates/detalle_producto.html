@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+    <title>{{ producto.nombre }} - Mi Tienda Online</title>
+</head>
+<body>
+
+    <header>
+        <a href="{{ url_for('hola_mundo') }}"><h1>Volver a Mi Tienda Online</h1></a>
+    </header>
+
+    <main>
+        {% if producto.imagen %}
+            <img src="{{ url_for('static', filename='uploads/products/' + producto.imagen) }}" alt="{{ producto.nombre }}" style="max-width: 100%; height: auto;">
+        {% endif %}
+        
+        <h2>{{ producto.nombre }}</h2>
+        <p><strong>Precio:</strong> ${{ producto.precio }}</p>
+        <p><strong>Stock disponible:</strong> {{ producto.stock }} unidades</p>
+        
+        <p>Descripción detallada del producto iría aquí...</p>
+        
+        <form action="{{ url_for('añadir_al_carrito', producto_id=producto.id) }}" method="POST">
+            <button type="submit">Añadir al Carrito</button>
+        </form>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Mi Tienda Online. Todos los derechos reservados.</p>
+    </footer>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

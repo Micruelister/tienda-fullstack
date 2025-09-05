@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+    <title>Gestionar Inventario</title>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('hola_mundo') }}"><h1>Panel de Administración</h1></a>
+    </header>
+    <main>
+        <h2>Gestionar Inventario de Productos</h2>
+        <a href="{{ url_for('crear_producto') }}">Añadir Nuevo Producto</a>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Imagen</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.id }}</td>
+                    <td>
+                        {% if producto.imagen %}
+                            <img src="{{ url_for('static', filename='uploads/products/' + producto.imagen) }}" alt="{{ producto.nombre }}" width="50">
+                        {% endif %}
+                    </td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>${{ "%.2f"|format(producto.precio) }}</td>
+                    <td>{{ producto.stock }}</td>
+                    <td>
+                        <!-- Botón para Editar -->
+                        <a href="{{ url_for('editar_producto', producto_id=producto.id) }}">Editar</a>
+                        
+                        <!-- Formulario para Eliminar -->
+                        <form action="{{ url_for('eliminar_producto', producto_id=producto.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" onclick="return confirm('¿Estás seguro de que quieres eliminar este producto?');">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
