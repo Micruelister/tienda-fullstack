@@ -138,22 +138,34 @@ def register():
         flash('Your account has been created! Please log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
+# En app.py
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        login_identity = request.form['login_identity']
-        password = request.form['password']
-        user = User.query.filter(or_(User.username == login_identity, User.email == login_identity)).first()
-        if user and bcrypt.check_password_hash(user.password_hash, password):
-            session['user_id'] = user.id
-            session['is_admin'] = user.is_admin
-            flash('You have successfully logged in!', 'success')
-            return redirect(url_for('home'))
-        else:
-            flash('Incorrect username or password.', 'danger')
-            return redirect(url_for('login'))
-    return render_template('login.html')
+@app.route('/api/login', methods=['POST']) # CAMBIO 1: Nueva ruta de API y solo POST
+def api_login(): # CAMBIO 2: Nuevo nombre de función
+    data = request.get_json() # CAMBIO 3: Leemos datos JSON, no de formulario
+    if not data:
+        return jsonify({"message": "No input data provided"}), 400
+
+    login_identity = data.get('email') # CAMBIO 4: Usamos .get() para leer del JSON
+    password = data.get('password')
+
+    if not login_identity or not password:
+        return jsonify({"message": "Email and password are required"}), 400
+
+    user = User.query.filter(or_(User.username == login_identity, User.email == login_identity)).first()
+    
+    if user and bcrypt.check_password_hash(user.password_hash, password):
+        session['user_id'] = user.id
+        session['is_admin'] = user.is_admin
+        
+        # Enviamos una respuesta JSON exitosa
+        return jsonify({
+            "message": "Login successful!",
+            "user": { "id": user.id, "username": user.username, "is_admin": user.is_admin }
+        }), 200
+    else:
+        # Enviamos una respuesta JSON de error
+        return jsonify({"message": "Invalid credentials"}), 401
 
 @app.route('/logout')
 def logout():
@@ -250,6 +262,14 @@ def checkout():
             return str(e)
 
     return render_template('checkout_page.html', cart_items=cart_items, total_price=total_price)
+
+@app.route('/api/logout', methods=['POST']) # Nueva ruta específica para la API
+def api_logout():
+    session.pop('user_id', None)
+    session.pop('cart', None)
+    session.pop('is_admin', None)
+    # En lugar de redirigir, devolvemos una respuesta JSON de éxito
+    return jsonify({"message": "Logout successful"}), 200
 
 @app.route('/order/success')
 def order_success():

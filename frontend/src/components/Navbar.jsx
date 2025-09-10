@@ -1,15 +1,34 @@
-import { Link } from 'react-router-dom'; // 1. Importamos el componente Link
+// En Navbar.jsx
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx'; // 1. Importamos el hook
+import { useCart } from '../context/CartContext.jsx';
 import styles from './Navbar.module.css';
 
 function Navbar() {
+  const { user, logout } = useAuth(); // 2. Leemos el usuario y la función logout de la pizarra
+  const { cartItems } = useCart();
+  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+
   return (
     <header className={styles.navbar}>
-      <h1>My Online Store</h1>
+      <h1><Link to="/" className={styles.titleLink}>My Online Store</Link></h1>
       <nav className={styles.navLinks}>
-        {/* 2. Reemplazamos <a> con <Link> y href con 'to' */}
         <Link to="/">Home</Link>
-        <Link to="/cart">View Cart</Link>
-        <Link to="/login">Login</Link>
+        <Link to="/cart">View Cart {totalItems > 0 && `(${totalItems})`}</Link>
+        
+        {/* 3. Lógica condicional */}
+        {user ? (
+          <>
+            <Link to="/my-account">My Account</Link>  
+            {user.is_admin && (
+              <Link to="/admin/inventory">Manage Inventory</Link>
+            )}            
+            {/* Haremos que este botón de logout funcione después */}
+            <button onClick={logout} className={styles.logoutButton}>Logout</button>
+          </>
+        ) : (
+          <Link to="/login">Login</Link>
+        )}
       </nav>
     </header>
   );
