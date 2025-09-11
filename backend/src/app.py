@@ -271,6 +271,30 @@ def api_logout():
     # En lugar de redirigir, devolvemos una respuesta JSON de éxito
     return jsonify({"message": "Logout successful"}), 200
 
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('email') or not data.get('password'):
+        return jsonify({"message": "Username, email, and password are required"}), 400
+
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    # Comprobamos si el usuario o el email ya existen
+    if User.query.filter_by(username=username).first():
+        return jsonify({"message": "Username already exists"}), 409 # 409 Conflict
+    if User.query.filter_by(email=email).first():
+        return jsonify({"message": "Email already registered"}), 409
+
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    new_user = User(username=username, email=email, password_hash=hashed_password)
+    
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User created successfully!"}), 201 # 201 Created
+
 @app.route('/order/success')
 def order_success():
     cart = session.get('cart', {})

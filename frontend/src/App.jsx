@@ -1,65 +1,62 @@
-// =================================================================
-// FILE: App.jsx (FULL AND CURRENT VERSION)
-// PURPOSE: Sets up the main application routing.
-// =================================================================
+// Contenido actualizado para frontend/src/App.jsx
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+// Componentes y Páginas
 import Navbar from './components/Navbar.jsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.jsx'; // 1. Importa a nuestro guardia
 import HomePage from './pages/HomePage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import MyAccountPage from './pages/MyAccountPage.jsx';
 import ManageInventoryPage from './pages/ManageInventoryPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
 
-// The App component is the root of our application's component tree.
-// Its main job is to define the structure of the pages and the navigation.
 function App() {
   return (
-    // <BrowserRouter> is the component that enables client-side routing.
-    // It should wrap your entire application.
     <BrowserRouter>
-
-      {/* 
-        The <Navbar> is placed outside of the <Routes> component.
-        This means it will be rendered on EVERY "page" of our application,
-        providing consistent navigation.
-      */}
       <Navbar /> 
-
-      {/*
-        The <Routes> component is a container for all of our individual routes.
-        It looks at the current URL and renders the first matching <Route>.
-      */}
+      <ToastContainer
+        position="bottom-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />      
       <Routes>
-        {/* Each <Route> defines a mapping between a URL path and a component. */}
-        
-        {/* When the URL is exactly "/", render the HomePage component. */}
+        {/* --- Rutas Públicas (Cualquiera puede verlas) --- */}
         <Route path="/" element={<HomePage />} />
-        
-        {/* When the URL is "/cart", render the CartPage component. */}
         <Route path="/cart" element={<CartPage />} />
-        
-        {/* 
-          This is a dynamic route. The ":id" part is a URL parameter.
-          It will match URLs like "/product/1", "/product/2", etc.
-          React Router will make the 'id' value available to the ProductDetailPage component.
-        */}
         <Route path="/product/:id" element={<ProductDetailPage />} />
-
-        {/* When the URL is "/login", render the LoginPage component. */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* In the future, we will add more routes here, for example: */}
-        {/* <Route path="/register" element={<RegisterPage />} /> */}
-        {/* <Route path="/my-account" element={<AccountPage />} /> */}
+        {/* --- Rutas Protegidas para Usuarios Logueados --- */}
+        {/* 2. Creamos una "ruta padre" que usa nuestro guardia */}
+        <Route element={<ProtectedRoute />}>
+          {/* Todas las rutas que estén DENTRO de esta serán protegidas */}
+          <Route path="/my-account" element={<MyAccountPage />} />
+          {/* En el futuro, la página de checkout también iría aquí */}
+          {/* <Route path="/checkout" element={<CheckoutPage />} /> */}
+        </Route>
 
-        <Route path="/my-account" element={<MyAccountPage />} />
-        <Route path="/admin/inventory" element={<ManageInventoryPage />} />
-        {/* Add more routes as needed */}
+        {/* --- Rutas Protegidas solo para Administradores --- */}
+        {/* 3. Creamos otra ruta padre que usa al guardia en modo "solo admin" */}
+        <Route element={<ProtectedRoute adminOnly={true} />}>
+          <Route path="/admin/inventory" element={<ManageInventoryPage />} />
+          {/* Todas las futuras rutas de admin irían aquí */}
+        </Route>
+        {/* --- Rutas para Autenticación --- */}
+        <Route path= "/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
       </Routes>
-
     </BrowserRouter>
   );
 }

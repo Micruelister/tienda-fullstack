@@ -7,7 +7,7 @@ import styles from './Navbar.module.css';
 function Navbar() {
   const { user, logout } = useAuth(); // 2. Leemos el usuario y la función logout de la pizarra
   const { cartItems } = useCart();
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <header className={styles.navbar}>
