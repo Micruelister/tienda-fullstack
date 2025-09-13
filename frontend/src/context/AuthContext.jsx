@@ -41,8 +41,10 @@ export function AuthProvider({ children }) {
       setUser(null);
     }
   };
-
-  const value = useMemo(() => ({ user, login, logout }), [user]);
+  const updateUser = (newUserData) => {
+    setUser(newUserData);
+  };
+  const value = useMemo(() => ({ user, login, logout, updateUser }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -53,4 +55,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+} 

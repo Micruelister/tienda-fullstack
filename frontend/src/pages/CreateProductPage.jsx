@@ -13,6 +13,7 @@ function CreateProductPage() {
   const [stock, setStock] = useState('');
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [description, setDescription] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
@@ -22,6 +23,7 @@ function CreateProductPage() {
     formData.append('name', name);
     formData.append('price', price);
     formData.append('stock', stock);
+    formData.append('description', description);
     if (image) {
       formData.append('image', image);
     }
@@ -75,6 +77,16 @@ function CreateProductPage() {
             onChange={(e) => setStock(e.target.value)}
             required
           />
+        </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="description">Description:</label>
+          <textarea
+            className={styles.formInput}
+            id="description"
+            rows="5"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          ></textarea>
         </div>
         <div className={styles.formGroup}>
           <label htmlFor="image">Product Image:</label>

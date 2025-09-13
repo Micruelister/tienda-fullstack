@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* FILE: CheckoutPage.module.css (FULL STYLES)                       */
+/* FILE: CheckoutPage.module.css (FULL VERSION FOR STRUCTURED FORM)  */
 /* ================================================================= */
 
 .checkoutLayout {
@@ -25,6 +25,49 @@
   padding-bottom: 1rem;
 }
 
+/* --- NEW STYLES FOR THE STRUCTURED FORM --- */
+.addressForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.formGroup input, .formGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.formGroup input:focus, .formGroup select:focus {
+  outline: none;
+  border-color: #67e9c8;
+  box-shadow: 0 0 0 2px rgba(103, 233, 200, 0.2);
+}
+/* --- END OF NEW FORM STYLES --- */
+
+
 .item {
   display: flex;
   justify-content: space-between;
@@ -32,6 +75,7 @@
   padding-bottom: 1rem;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .item:last-child {
   border-bottom: none;
 }
@@ -65,7 +109,7 @@
   font-size: 1.1rem;
   font-weight: bold;
   color: white;
-  background-color: #27ae60; /* A nice green for payment */
+  background-color: #27ae60;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -74,4 +118,9 @@
 
 .payButton:hover {
   background-color: #2ecc71;
+}
+
+.payButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }

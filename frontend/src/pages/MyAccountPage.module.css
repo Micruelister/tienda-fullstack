@@ -1,0 +1,132 @@
+.accountInfo, .orderHistory {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.accountInfo h3, .orderHistory h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ordersList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.orderCard {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden; /* Para que el header se vea bien */
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9f9f9;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.orderHeader h4 {
+  margin: 0;
+}
+
+.orderHeader span {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.orderDetails {
+  padding: 1.5rem;
+}
+
+.orderDetails p {
+  margin: 0.5rem 0;
+}
+
+.orderDetails h5 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.orderDetails ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+.infoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.editForm {
+  margin-top: 1rem;
+}
+
+.formGroup {
+  margin-bottom: 1rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.buttonGroup {
+  display: flex; /* Usa Flexbox para alinear los botones */
+  justify-content: flex-end; /* Alinea los botones a la derecha */
+  gap: 0.5rem; /* Añade un pequeño espacio entre los botones */
+  margin-top: 1.5rem; /* Añade espacio por encima de los botones */
+}
+.editButton, .saveButton, .cancelButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.editButton {
+  background-color: #3498db;
+  color: white;
+}
+
+.saveButton {
+  background-color: #27ae60;
+  color: white;
+  margin-left: 0.5rem;
+}
+
+.cancelButton {
+  background-color: #f1f1f1; /* Un fondo sutil para el botón de cancelar */
+  color: #777;
+}
+.cancelButton:hover {
+  background-color: #e1e1e1;
+}
+
+.viewInfo {
+  margin-top: 1rem;
+}
+
+.viewInfo p {
+  margin: 0.5rem 0;
+}
