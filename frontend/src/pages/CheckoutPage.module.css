@@ -1,0 +1,77 @@
+/* ================================================================= */
+/* FILE: CheckoutPage.module.css (FULL STYLES)                       */
+/* ================================================================= */
+
+.checkoutLayout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-top: 2rem;
+}
+
+.orderDetails, .orderSummary {
+  background-color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  color: #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.orderDetails h3, .orderSummary h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.item:last-child {
+  border-bottom: none;
+}
+
+.item span:first-child {
+  color: #555;
+}
+
+.item span:last-child {
+  font-weight: bold;
+}
+
+.summaryLine {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.summaryLine span:first-child {
+  color: #555;
+}
+
+.summaryLine span:last-child {
+  font-weight: bold;
+}
+
+.payButton {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  background-color: #27ae60; /* A nice green for payment */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.payButton:hover {
+  background-color: #2ecc71;
+}

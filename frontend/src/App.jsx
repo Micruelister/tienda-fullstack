@@ -1,23 +1,36 @@
-// Contenido actualizado para frontend/src/App.jsx
+// =================================================================
+// FILE: App.jsx (FULL, CORRECTED, AND COMPLETE VERSION)
+// =================================================================
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// --- Toastify Imports ---
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// Componentes y Páginas
+
+// --- Layout & Auth Components ---
 import Navbar from './components/Navbar.jsx';
-import ProtectedRoute from './components/auth/ProtectedRoute.jsx'; // 1. Importa a nuestro guardia
+import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
+
+// --- Page Components (ALL OF THEM) ---
 import HomePage from './pages/HomePage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
 import MyAccountPage from './pages/MyAccountPage.jsx';
 import ManageInventoryPage from './pages/ManageInventoryPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
+import CreateProductPage from './pages/CreateProductPage.jsx';
+import EditProductPage from './pages/EditProductPage.jsx';
+import CheckoutPage from './pages/CheckoutPage.jsx';
+import OrderSuccessPage from './pages/OrderSuccessPage.jsx';
+import OrderCancelPage from './pages/OrderCancelPage.jsx';
 
 function App() {
   return (
     <BrowserRouter>
       <Navbar /> 
+      
       <ToastContainer
         position="bottom-right"
         autoClose={4000}
@@ -29,32 +42,31 @@ function App() {
         draggable
         pauseOnHover
         theme="colored"
-      />      
+      />
+
       <Routes>
-        {/* --- Rutas Públicas (Cualquiera puede verlas) --- */}
+        
+        {/* --- PUBLIC ROUTES --- */}
         <Route path="/" element={<HomePage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* --- Rutas Protegidas para Usuarios Logueados --- */}
-        {/* 2. Creamos una "ruta padre" que usa nuestro guardia */}
+        {/* --- PROTECTED ROUTES FOR LOGGED-IN USERS --- */}
         <Route element={<ProtectedRoute />}>
-          {/* Todas las rutas que estén DENTRO de esta serán protegidas */}
           <Route path="/my-account" element={<MyAccountPage />} />
-          {/* En el futuro, la página de checkout también iría aquí */}
-          {/* <Route path="/checkout" element={<CheckoutPage />} /> */}
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order/success" element={<OrderSuccessPage />} />
+          <Route path="/order/cancel" element={<OrderCancelPage />} />  
         </Route>
 
-        {/* --- Rutas Protegidas solo para Administradores --- */}
-        {/* 3. Creamos otra ruta padre que usa al guardia en modo "solo admin" */}
+        {/* --- PROTECTED ROUTES FOR ADMINS ONLY --- */}
         <Route element={<ProtectedRoute adminOnly={true} />}>
           <Route path="/admin/inventory" element={<ManageInventoryPage />} />
-          {/* Todas las futuras rutas de admin irían aquí */}
+          <Route path="/admin/product/new" element={<CreateProductPage />} />
+          <Route path="/admin/product/edit/:id" element={<EditProductPage />} /> {/* Añade la ruta */}
         </Route>
-        {/* --- Rutas para Autenticación --- */}
-        <Route path= "/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
 
       </Routes>
     </BrowserRouter>

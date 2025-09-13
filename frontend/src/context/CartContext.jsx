@@ -1,8 +1,9 @@
 // =================================================================
-// FILE: CartContext.jsx (FINAL POLISHED VERSION)
+// FILE: CartContext.jsx (FINAL, STABLE & OPTIMIZED VERSION)
+// PURPOSE: Manages the global state for the shopping cart.
 // =================================================================
 
-import { createContext, useState, useContext, useMemo, useEffect } from 'react';
+import { createContext, useState, useContext, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext.jsx';
 import { toast } from 'react-toastify';
 
@@ -31,64 +32,69 @@ export function CartProvider({ children }) {
     }
   }, [user]);
 
-  // --- CART MANAGEMENT FUNCTIONS ---
+  // --- CART MANAGEMENT FUNCTIONS (STABILIZED WITH useCallback) ---
 
-  const addToCart = (product) => {
+  // useCallback memoizes the function itself, so it isn't recreated on every render.
+  // This is crucial for performance and preventing infinite loops in dependent useEffects.
+  const addToCart = useCallback((product) => {
     if (!product || !product.name) {
       console.error("addToCart was called with an invalid product object:", product);
       toast.error("An unknown item was added to the cart.");
       return;
     }
 
-    const existingItem = cartItems.find(item => item.id === product.id);
-    const quantityInCart = existingItem ? existingItem.quantity : 0;
-
-    if (quantityInCart >= product.stock) {
-      toast.warn(`Only ${product.stock} units of "${product.name}" are in stock.`);
-      return;
-    }
-
-    if (existingItem) {
-      setCartItems(cartItems.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      ));
-    } else {
-      setCartItems([...cartItems, { ...product, quantity: 1 }]);
-    }
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      
+      if (existingItem) {
+        if (existingItem.quantity >= product.stock) {
+          toast.warn(`Only ${product.stock} units of "${product.name}" are in stock.`);
+          return prevItems; // Return previous items without change
+        }
+        return prevItems.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      if (product.stock < 1) {
+        toast.warn(`"${product.name}" is out of stock.`);
+        return prevItems;
+      }
+      return [...prevItems, { ...product, quantity: 1 }];
+    });
     
-    // Final version of the success toast, without extra quotes
     toast.success(`${product.name} has been added to the cart!`);
-  };
+  }, []); // Empty dependency array means this function will never change.
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = useCallback((productId) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
     toast.info("Item removed from cart.");
-  };
+  }, []);
 
-  const updateQuantity = (productId, newQuantity) => {
-    const itemToUpdate = cartItems.find(item => item.id === productId);
-    if (!itemToUpdate) return;
+  const updateQuantity = useCallback((productId, newQuantity) => {
+    setCartItems(prevItems => {
+      const itemToUpdate = prevItems.find(item => item.id === productId);
+      if (!itemToUpdate) return prevItems;
 
-    if (newQuantity > itemToUpdate.stock) {
-      toast.warn(`Sorry, you cannot have ${newQuantity} of "${itemToUpdate.name}". We only have ${itemToUpdate.stock} in stock.`);
-      return;
-    }
+      if (newQuantity > itemToUpdate.stock) {
+        toast.warn(`Only ${itemToUpdate.stock} of "${itemToUpdate.name}" in stock.`);
+        return prevItems; // Return previous items without change
+      }
 
-    if (newQuantity < 1) {
-      removeFromCart(productId);
-    } else {
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
-        )
+      if (newQuantity < 1) {
+        // Instead of calling removeFromCart directly, we integrate its logic
+        return prevItems.filter(item => item.id !== productId);
+      }
+      
+      return prevItems.map(item =>
+        item.id === productId ? { ...item, quantity: newQuantity } : item
       );
-    }
-  };
+    });
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCartItems([]);
     toast.info("Cart has been cleared.");
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -98,7 +104,7 @@ export function CartProvider({ children }) {
       updateQuantity,
       clearCart,
     }),
-    [cartItems]
+    [cartItems, addToCart, removeFromCart, updateQuantity, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

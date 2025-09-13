@@ -70,7 +70,9 @@ function CartPage() {
                 <span>Total</span>
                 <span>${totalPrice.toFixed(2)}</span>
               </div>
-              <button className={styles.checkoutButton}>Proceed to Checkout</button>
+              <Link to="/checkout" className={styles.checkoutButton}>
+                Proceed to Checkout
+              </Link>
             </div>
           </div>
         </>

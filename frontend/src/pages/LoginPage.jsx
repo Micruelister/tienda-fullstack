@@ -1,48 +1,29 @@
 // =================================================================
-// FILE: LoginPage.jsx (FULL VERSION WITH TOASTS & STYLING)
+// FILE: frontend/src/pages/LoginPage.jsx
 // =================================================================
-
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { toast } from 'react-toastify'; // Import toast
+import { toast } from 'react-toastify';
 import styles from './AuthForm.module.css';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to login');
-      }
-      
-      toast.success('Welcome back!'); // Success toast notification
-      login(data.user);
+      await login(email, password);
+      toast.success('Welcome back!');
       navigate('/');
-
     } catch (err) {
-      console.error('Login error:', err);
-      // Display error using toast instead of alert
-      toast.error(err.message); 
+      const errorMessage = err.response?.data?.message || 'Failed to login. Please check your credentials.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -64,7 +45,6 @@ function LoginPage() {
             required
           />
         </div>
-
         <div className={styles.formGroup}>
           <label htmlFor="password">Password:</label>
           <input
@@ -77,17 +57,14 @@ function LoginPage() {
             required
           />
         </div>
-        
         <button type="submit" className={styles.submitButton} disabled={loading}>
           {loading ? 'Signing In...' : 'Sign In'}
         </button>
       </form>
-      
       <p className={styles.switchFormLink}>
         Don't have an account? <Link to="/register">Create one here</Link>.
       </p>
     </div>
   );
 }
-
 export default LoginPage;
