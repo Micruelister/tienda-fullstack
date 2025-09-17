@@ -1,43 +1,68 @@
 // =================================================================
-// FILE: frontend/src/pages/CreateProductPage.jsx (UPDATED WITH AXIOS)
+// FILE: CreateProductPage.jsx (HANDLES MULTIPLE IMAGE UPLOADS)
+// PURPOSE: Renders a form for admins to create a new product.
 // =================================================================
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axiosInstance from '../api/axiosInstance';
-import styles from './AuthForm.module.css';
+import styles from './AuthForm.module.css'; // Reusing our consistent form styles
 
 function CreateProductPage() {
+  // State for each individual form field
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
-  const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
+  const [brand, setBrand] = useState('');
+  
+  // State for the images. It will now hold an array of file objects.
+  const [images, setImages] = useState([]); 
+  
+  // State for UI feedback
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // This function is called when the form is submitted
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
+
+    // We use FormData because we are sending files (images) along with text data.
+    // Standard JSON cannot handle file uploads.
     const formData = new FormData();
     formData.append('name', name);
     formData.append('price', price);
     formData.append('stock', stock);
     formData.append('description', description);
-    if (image) {
-      formData.append('image', image);
+    formData.append('brand', brand);
+
+    // If the user has selected images, loop through the array and append each one.
+    // The key 'images' must match what the backend expects with `request.files.getlist('images')`.
+    if (images.length > 0) {
+      for (let i = 0; i < images.length; i++) {
+        formData.append('images', images[i]);
+      }
     }
 
     try {
       const response = await axiosInstance.post('/admin/product/new', formData);
       toast.success(response.data.message);
-      navigate('/admin/inventory');
+      navigate('/admin/inventory'); // Redirect to the inventory list on success
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // This function handles the file input change
+  const handleImageChange = (e) => {
+    // e.target.files is a FileList, not a true array.
+    // Array.from() converts it into an array so we can easily work with it.
+    setImages(Array.from(e.target.files));
   };
 
   return (
@@ -78,6 +103,16 @@ function CreateProductPage() {
             required
           />
         </div>
+         <div className={styles.formGroup}>
+          <label htmlFor="brand">Brand:</label>
+          <input
+            className={styles.formInput}
+            type="text"
+            id="brand"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+          />
+        </div>
         <div className={styles.formGroup}>
           <label htmlFor="description">Description:</label>
           <textarea
@@ -89,13 +124,15 @@ function CreateProductPage() {
           ></textarea>
         </div>
         <div className={styles.formGroup}>
-          <label htmlFor="image">Product Image:</label>
+          <label htmlFor="images">Product Images:</label>
           <input
             className={styles.formInput}
             type="file"
-            id="image"
+            id="images"
+            name="images" // Name attribute is good practice
             accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
+            multiple // This HTML attribute allows selecting multiple files
+            onChange={handleImageChange}
           />
         </div>
         <button type="submit" className={styles.submitButton} disabled={loading}>
@@ -105,4 +142,5 @@ function CreateProductPage() {
     </div>
   );
 }
+
 export default CreateProductPage;

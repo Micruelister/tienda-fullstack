@@ -28,7 +28,7 @@ function CartPage() {
             <div className={styles.cartItems}>
               {cartItems.map(item => (
                 <div key={item.id} className={styles.cartItem}>
-                  <img src={item.imageUrl || 'https://via.placeholder.com/150'} alt={item.name} className={styles.itemImage} />
+                  <img src={item.thumbnailUrl || 'https://via.placeholder.com/150'} alt={item.name} className={styles.itemImage} />
                   
                   {/* --- CORRECTION STARTS HERE --- */}
                   <div className={styles.itemDetails}>

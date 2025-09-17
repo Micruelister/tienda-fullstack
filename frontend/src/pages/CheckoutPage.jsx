@@ -1,53 +1,132 @@
 // =================================================================
-// FILE: CheckoutPage.jsx (FULL VERSION WITH STRUCTURED ADDRESS FORM)
+// FILE: CheckoutPage.jsx (ABSOLUTELY 100% COMPLETE - FINAL VERSION)
 // =================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import axiosInstance from '../api/axiosInstance.js';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
+import { getAlpha2Code as getCountryCodeByName } from 'iso-country-converter';
+
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css'; 
+
+// --- Component Imports ---
+import GooglePlacesAutocomplete from '../components/forms/GooglePlacesAutocomplete.jsx';
 import styles from './CheckoutPage.module.css';
 import '../App.css';
-import { schengenCountries } from '../utils/countries.js'; // We import our new country list
 
+// --- Helper Function ---
+// Extracts a specific address component from the Google Geocode result.
+const extractAddressComponent = (components, type, short = false) => {
+  const component = components.find(c => c.types.includes(type));
+  if (!component) return '';
+  return short ? component.short_name : component.long_name;
+};
+
+function getCountryCode(countryName) {
+  if (!countryName) return undefined;
+  try {
+    return getCountryCodeByName(countryName, 'en');
+  } catch (error) {
+    console.warn(`Could not find ISO code for country: ${countryName}`, error);
+    return undefined;
+  }
+}
 function CheckoutPage() {
+  // --- STATE MANAGEMENT ---
   const { cartItems } = useCart();
   const { user } = useAuth();
   
-  // Create a single state object to hold all address fields
   const [address, setAddress] = useState({
-    fullName: user?.username || '', // Pre-fill with username if available
+    fullName: user?.username || '',
     streetAddress: '',
+    apartmentSuite: '',
     city: '',
     postalCode: '',
-    country: 'Spain', // Set a default country from the list
+    country: '',
+    phoneNumber: user?.phoneNumber || '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [countryCode, setCountryCode] = useState(undefined);
+  useEffect(() => {
+    if (address.country) {
+      const code = getCountryCode(address.country);
+      setCountryCode(code);
+    } else {
+      setCountryCode(undefined);
+    }
+  }, [address.country]);  
 
-  // A single handler function to update any address field
-  const handleAddressChange = (e) => {
-    // e.target.name will be "fullName", "city", etc.
-    // e.target.value is what the user typed
-    setAddress({ ...address, [e.target.name]: e.target.value });
+  // --- EVENT HANDLERS ---
+
+  // Handles manual changes to the form inputs.
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setAddress(prev => ({ ...prev, [name]: value }));
   };
+    const handlePhoneChange = (value) => {
+    setAddress(prev => ({ ...prev, phoneNumber: value }));
+  };
+  // Handles the selection of an address from the Google Autocomplete dropdown.
+const handleAddressSelect = (placeId) => {
+    if (!placeId) return;
+    if (!window.google || !window.google.maps) return;
+    const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+    service.getDetails({ placeId, fields: ['address_components', 'name'] }, (place, status) => {
+      if (status === 'OK' && place && place.address_components) {
+        const components = place.address_components;
+        const streetNumber = extractAddressComponent(components, 'street_number');
+        const route = extractAddressComponent(components, 'route');
+        const formattedStreetAddress = [streetNumber, route].filter(Boolean).join(' ');
+        
+        setAddress(prev => ({
+          ...prev,
+          streetAddress: formattedStreetAddress || place.name,
+          city: extractAddressComponent(components, 'locality'),
+          postalCode: extractAddressComponent(components, 'postal_code'),
+          country: extractAddressComponent(components, 'country'),
+        }));
+      } else {
+        console.error('PlacesService getDetails failed:', status);
+        toast.warn("Could not auto-fill address details. Please fill fields manually.");
+      }
+    });
+  }
 
-  const handleCheckout = async () => {
-    // Simple validation to ensure fields are not empty
-    if (!address.fullName || !address.streetAddress || !address.city || !address.postalCode || !address.country) {
-      toast.error("Please fill in all address fields.");
+  // Handles the final checkout submission to our backend.
+const handleCheckout = async () => {
+  // --- LÓGICA CORREGIDA ---
+  
+  // 1. Primero, validamos el número de teléfono por separado
+  if (address.phoneNumber && !isValidPhoneNumber(address.phoneNumber)) {
+    toast.error("Please enter a valid phone number.");
+    return;
+  }
+
+  // 2. Creamos una copia del objeto de dirección para la validación
+  const fieldsToValidate = { ...address };
+  // Eliminamos el campo opcional para que no sea requerido
+  delete fieldsToValidate.apartmentSuite; 
+
+  for (const key in fieldsToValidate) {
+    if (!fieldsToValidate[key]) {
+      const fieldName = key.replace(/([A-Z])/g, ' $1').toLowerCase();
+      toast.error(`Please fill in the '${fieldName}' field.`);
       return;
     }
+  }
 
     setLoading(true);
     try {
       const response = await axiosInstance.post('/api/create-checkout-session', {
-        cartItems: cartItems,
-        shippingAddress: address // Send the entire address object
+        cartItems,
+        shippingAddress: address,
       });
-      const { url } = response.data;
-      window.location.href = url;
+      window.location.href = response.data.url;
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Checkout failed. Please try again.";
       toast.error(errorMessage);
@@ -56,14 +135,18 @@ function CheckoutPage() {
     }
   };
 
+  // --- RENDER LOGIC ---
   if (cartItems.length === 0) {
     return (
-      <main className="container">
-        <h2>Checkout</h2>
+      <main className="container" style={{textAlign: 'center'}}>
+        <h2>Checkout</h2>   
         <p>Your cart is empty. There is nothing to check out.</p>
+        <Link to="/">Continue Shopping</Link>
       </main>
     );
   }
+
+  const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
   return (
     <main className="container">
@@ -71,38 +154,59 @@ function CheckoutPage() {
       <div className={styles.checkoutLayout}>
         <div className={styles.orderDetails}>
           <h3>Shipping Information</h3>
-          {/* --- NEW STRUCTURED ADDRESS FORM --- */}
           <div className={styles.addressForm}>
             <div className={styles.formGroup}>
+
               <label htmlFor="fullName">Full Name</label>
-              <input type="text" id="fullName" name="fullName" value={address.fullName} onChange={handleAddressChange} required />
+              <input type="text" id="fullName" name="fullName" value={address.fullName} onChange={handleInputChange} required />
             </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="country">Country</label>
-              <select id="country" name="country" value={address.country} onChange={handleAddressChange} required>
-                {/* We dynamically create an <option> for each country in our list */}
-                {schengenCountries.map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
-            </div>
+            
             <div className={styles.formGroup}>
               <label htmlFor="streetAddress">Street Address</label>
-              <input type="text" id="streetAddress" name="streetAddress" value={address.streetAddress} onChange={handleAddressChange} required placeholder="e.g., 123 Main St" />
+              <GooglePlacesAutocomplete onSelect={handleAddressSelect} />
             </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="apartmentSuite">Apartment, suite, etc. (optional)</label>
+              <input
+                type="text"
+                id="apartmentSuite"
+                name="apartmentSuite"
+                value={address.apartmentSuite}
+                onChange={handleInputChange}
+              />
+            </div>
+
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="city">City</label>
-                <input type="text" id="city" name="city" value={address.city} onChange={handleAddressChange} required />
+                <input type="text" id="city" name="city" value={address.city} onChange={handleInputChange} required />
               </div>
               <div className={styles.formGroup}>
                 <label htmlFor="postalCode">Postal Code</label>
-                <input type="text" id="postalCode" name="postalCode" value={address.postalCode} onChange={handleAddressChange} required />
+                <input type="text" id="postalCode" name="postalCode" value={address.postalCode} onChange={handleInputChange} required />
               </div>
             </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="country">Country</label>
+              <input type="text" id="country" name="country" value={address.country} onChange={handleInputChange} required />
+            </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <PhoneInput
+                id="phoneNumber"
+                name="phoneNumber"
+                country={countryCode}
+                placeholder="Enter phone number"
+                value={address.phoneNumber}
+                onChange={handlePhoneChange}
+                className={styles.phoneInput}
+                required
+              />
+            </div>            
           </div>
           <hr />
-          <h3>Order Items:</h3>
+          <h3>Order Items</h3>
           {cartItems.map(item => (
             <div key={item.id} className={styles.item}>
               <span>{item.name} (x{item.quantity})</span>
@@ -112,9 +216,9 @@ function CheckoutPage() {
         </div>
         <div className={styles.orderSummary}>
             <h3>Order Summary</h3>
-             <div className={styles.summaryLine}>
+            <div className={styles.summaryLine}>
               <span>Total</span>
-              <span>${cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}</span>
+              <span>${totalPrice.toFixed(2)}</span>
             </div>
             <button onClick={handleCheckout} disabled={loading} className={styles.payButton}>
               {loading ? 'Processing...' : 'Proceed to Payment'}

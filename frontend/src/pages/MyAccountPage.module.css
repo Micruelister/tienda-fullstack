@@ -1,67 +1,28 @@
-.accountInfo, .orderHistory {
+/* ================================================================= */
+/* FILE: MyAccountPage.module.css (CREATIVE & MODERN REDESIGN)       */
+/* ================================================================= */
+
+/* --- General Layout & Card Styles --- */
+.accountSection {
   background-color: white;
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2.5rem;
   color: #333;
+  border: 1px solid #eef0f2;
 }
 
-.accountInfo h3, .orderHistory h3 {
+.accountSection h3 {
   margin-top: 0;
-  border-bottom: 1px solid #eee;
   padding-bottom: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  color: #2c3e50;
+  font-weight: 600;
+  border-bottom: 1px solid #eef0f2;
 }
 
-.ordersList {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.orderCard {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden; /* Para que el header se vea bien */
-}
-
-.orderHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f9f9f9;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #ddd;
-}
-
-.orderHeader h4 {
-  margin: 0;
-}
-
-.orderHeader span {
-  font-size: 0.9rem;
-  color: #777;
-}
-
-.orderDetails {
-  padding: 1.5rem;
-}
-
-.orderDetails p {
-  margin: 0.5rem 0;
-}
-
-.orderDetails h5 {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.orderDetails ul {
-  list-style-type: disc;
-  padding-left: 20px;
-  margin: 0;
-}
 .infoHeader {
   display: flex;
   justify-content: space-between;
@@ -69,64 +30,133 @@
   width: 100%;
 }
 
-.editForm {
-  margin-top: 1rem;
+/* --- ACCOUNT INFO SECTION --- */
+.viewInfo {
+  display: grid;
+  grid-template-columns: 120px 1fr; /* Label column and Value column */
+  gap: 1rem;
+  align-items: center;
+}
+.viewInfo p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+.viewInfo p strong {
+  color: #555;
+  font-weight: 600;
 }
 
-.formGroup {
-  margin-bottom: 1rem;
+/* --- EDIT FORM & PASSWORD FORM --- */
+.editForm, .passwordChange form {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
-
 .formGroup label {
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-.formGroup input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.buttonGroup {
-  display: flex; /* Usa Flexbox para alinear los botones */
-  justify-content: flex-end; /* Alinea los botones a la derecha */
-  gap: 0.5rem; /* Añade un pequeño espacio entre los botones */
-  margin-top: 1.5rem; /* Añade espacio por encima de los botones */
-}
-.editButton, .saveButton, .cancelButton {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.editButton {
-  background-color: #3498db;
-  color: white;
-}
-
-.saveButton {
-  background-color: #27ae60;
-  color: white;
-  margin-left: 0.5rem;
-}
-
-.cancelButton {
-  background-color: #f1f1f1; /* Un fondo sutil para el botón de cancelar */
+  font-weight: 500;
+  font-size: 0.9rem;
   color: #777;
 }
-.cancelButton:hover {
-  background-color: #e1e1e1;
+.formGroup input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+.formGroup input:focus {
+  outline: none;
+  border-color: #67e9c8;
+  box-shadow: 0 0 0 3px rgba(103, 233, 200, 0.3);
 }
 
-.viewInfo {
+/* --- BUTTONS --- */
+.buttonGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
   margin-top: 1rem;
 }
+.editButton, .saveButton, .cancelButton {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+.editButton { background-color: #3498db; color: white; }
+.saveButton { background-color: #27ae60; color: white; }
+.cancelButton { background-color: #f1f1f1; color: #777; }
+.editButton:hover, .saveButton:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.cancelButton:hover { background-color: #e1e1e1; }
 
-.viewInfo p {
-  margin: 0.5rem 0;
+
+/* --- ORDER HISTORY SECTION --- */
+.ordersList {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.orderCard {
+  border: 1px solid #eef0f2;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+.orderCard:hover {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #eef0f2;
+}
+.orderHeader h4 { margin: 0; color: #333; }
+.orderHeader span { font-size: 0.9rem; color: #777; }
+
+.orderDetails {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive columns */
+  gap: 1.5rem;
+}
+.orderDetails p, .orderDetails h5 { margin: 0; }
+.orderDetails strong { color: #333; font-weight: 600; }
+
+.addressBlock {
+  font-style: normal;
+  line-height: 1.6;
+  color: #555;
+}
+
+.orderItems {
+  border-left: 3px solid #67e9c8; /* Accent border */
+  padding-left: 1.5rem;
+}
+
+.orderItems h5 {
+  margin-bottom: 0.5rem;
+}
+
+.orderItems ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.orderItems li {
+  color: #555;
 }

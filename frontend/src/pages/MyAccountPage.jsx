@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import axiosInstance from '../api/axiosInstance.js';
 import { toast } from 'react-toastify';
-import styles from './MyAccountPage.module.css'; // Crearemos este archivo
+import styles from './MyAccountPage.module.css';
 import '../App.css';
 
 function MyAccountPage() {
@@ -12,8 +12,11 @@ function MyAccountPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({ username: '', email: '' });
+  const [profileData, setProfileData] = useState({ username: '', email: '', phoneNumber: '' });
   const [saving, setSaving] = useState(false);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   
   // useEffect para buscar el historial de pedidos cuando la página carga
   useEffect(() => {
@@ -23,7 +26,7 @@ function MyAccountPage() {
         const response = await axiosInstance.get('/api/my-orders');
         setOrders(response.data);
       } catch (error) {
-        console.error("Error fetching orders:", error);
+        console.error("Error fetching orders:", error.response || error);
         toast.error("Could not load order history.");
       } finally {
         setLoading(false);
@@ -41,7 +44,8 @@ function MyAccountPage() {
     if (user) {
       setProfileData({
         username: user.username,
-        email: user.email
+        email: user.email,
+        phoneNumber: user.phoneNumber || ''
       });
     }
   }, [user]);
@@ -49,7 +53,25 @@ function MyAccountPage() {
   const handleProfileChange = (e) => {
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
+  const handlePasswordChange = (e) => {
+  setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
 
+  const handlePasswordSave = async (e) => {
+    e.preventDefault();
+    setPasswordSaving(true);
+    try {
+      const response = await axiosInstance.post('/api/user/change-password', passwordData);
+      toast.success(response.data.message);
+      // Limpiamos los campos del formulario de contraseña
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to update password.";
+      toast.error(errorMessage);
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -75,13 +97,11 @@ function MyAccountPage() {
   
 return (
     <main className="container">
-      <h2>My Account</h2>
-      <div className={styles.accountInfo}>
+      <h2 style={{textAlign: 'center', fontSize: '2.5rem', marginBottom: '2rem'}}>My Account</h2>
+      <div className={styles.accountSection}>
         <div className={styles.infoHeader}>
           <h3>Account Information</h3>
           
-          {/* --- LÓGICA CORREGIDA PARA LOS BOTONES --- */}
-          {/* SI NO estamos editando, muestra el botón "Edit Profile" */}
           {!isEditing && (
             <button onClick={() => setIsEditing(true)} className={styles.editButton}>
               Edit Profile
@@ -100,6 +120,10 @@ return (
               <label htmlFor="email">Email</label>
               <input type="email" id="email" name="email" value={profileData.email} onChange={handleProfileChange} />
             </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <input type="tel" id="phoneNumber" name="phoneNumber" value={profileData.phoneNumber} onChange={handleProfileChange} />
+            </div>            
             <div className={styles.buttonGroup}>
               <button type="button" onClick={() => setIsEditing(false)} className={styles.cancelButton}>Cancel</button>
               <button type="submit" disabled={saving} className={styles.saveButton}>
@@ -110,12 +134,87 @@ return (
         ) : (
           // SI NO estamos editando, muestra la información estática
           <div className={styles.viewInfo}>
-            <p><strong>Username:</strong> {user.username}</p>
-            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Username:</strong><span> {profileData.username} </span></p> 
+            <p><strong>Email:</strong> <span>{profileData.email}</span></p>
+            <p><strong>Phone:</strong> <span>{profileData.phoneNumber || 'Not provided'}</span></p>
           </div>
         )}
       </div>
 
+      <div className={styles.accountSection}>
+        <div className={styles.infoHeader}>
+          <h3>Change Password</h3>
+          {!showPasswordForm && (
+            <button 
+              onClick={() => setShowPasswordForm(true)} 
+              className={styles.editButton}
+            >
+              Change
+            </button>
+          )}
+        </div>
+
+        {/* 
+          This form is only rendered if 'showPasswordForm' is true.
+        */}
+        {showPasswordForm && (
+          <form onSubmit={handlePasswordSave}>
+            <div className={styles.formGroup}>
+              <label htmlFor="currentPassword">Current Password</label>
+              <input 
+                type="password" 
+                id="currentPassword" 
+                name="currentPassword" 
+                value={passwordData.currentPassword} 
+                onChange={handlePasswordChange} 
+                required 
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="newPassword">New Password</label>
+              <input 
+                type="password" 
+                id="newPassword" 
+                name="newPassword" 
+                value={passwordData.newPassword} 
+                onChange={handlePasswordChange} 
+                required 
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="confirmPassword">Confirm New Password</label>
+              <input 
+                type="password" 
+                id="confirmPassword" 
+                name="confirmPassword" 
+                value={passwordData.confirmPassword} 
+                onChange={handlePasswordChange} 
+                required 
+              />
+            </div>
+            <div className={styles.buttonGroup}>
+              {/* 
+                This "Cancel" button simply hides the form again by setting
+                'showPasswordForm' back to false.
+              */}
+              <button 
+                type="button" 
+                onClick={() => setShowPasswordForm(false)} 
+                className={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={passwordSaving} 
+                className={styles.saveButton}
+              >
+                {passwordSaving ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
       <div className={styles.orderHistory}>
         <h3>My Order History</h3>
         {loading ? (
@@ -131,16 +230,29 @@ return (
                   <span>Date: {order.date}</span>
                 </div>
                 <div className={styles.orderDetails}>
+                  <p><strong>Customer:</strong> {order.shippingInfo.fullName}</p>
                   <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
-                  <p><strong>Shipped to:</strong> {order.shipping_address}</p>
-                  <h5>Items:</h5>
-                  <ul>
-                    {order.products.map((product, index) => (
-                      <li key={index}>
-                        {product.name} (x{product.quantity})
-                      </li>
-                    ))}
-                  </ul>
+                  <div>
+                    <strong>Shipped to:</strong>
+                    <address className={styles.addressBlock}>
+                      {order.shippingInfo.fullName}<br />
+                      {order.shippingInfo.streetAddress}<br />
+                      {order.shippingInfo.apartmentSuite && <>{order.shippingInfo.apartmentSuite}<br /></>}
+                      {order.shippingInfo.city}{order.shippingInfo.postalCode}<br />
+                      {order.shippingInfo.country}<br />
+                      {order.shippingInfo.phoneNumber || 'N/A'}
+                    </address>
+                  </div>
+                  <div className={styles.orderItems}>
+                    <h5>Items:</h5>
+                    <ul>
+                      {order.products.map((product, index) => (
+                        <li key={index}>
+                          {product.name} (x{product.quantity})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             ))}

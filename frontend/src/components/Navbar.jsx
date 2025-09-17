@@ -7,6 +7,7 @@ import styles from './Navbar.module.css';
 function Navbar() {
   const { user, logout } = useAuth(); // 2. Leemos el usuario y la función logout de la pizarra
   const { cartItems } = useCart();
+  console.log("Navbar rendering. Current user:", user); // microfono 1
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -21,9 +22,11 @@ function Navbar() {
           <>
             <Link to="/my-account">My Account</Link>  
             {user.is_admin && (
+              <>
               <Link to="/admin/inventory">Manage Inventory</Link>
+              <Link to="/admin/orders">Orders</Link>
+              </>
             )}            
-            {/* Haremos que este botón de logout funcione después */}
             <button onClick={logout} className={styles.logoutButton}>Logout</button>
           </>
         ) : (

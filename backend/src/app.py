@@ -52,9 +52,17 @@ class Product(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
-    image_filename = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, nullable=True)
+    brand = db.Column(db.String(100), nullable=True)
+    images = db.relationship('ProductImage', backref='product', lazy=True, cascade="all, delete-orphan")
 
+class ProductImage(db.Model):
+    __tablename__ = 'product_images'
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200), nullable=False)
+    # Esta es la "llave foránea" que conecta cada imagen con un producto.
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -62,6 +70,7 @@ class User(db.Model):
     email = db.Column(db.String(120), nullable=False, unique=True)
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    phone_number = db.Column(db.String(50), nullable=True)
 
 class Order(db.Model):
     __tablename__ = 'orders'
@@ -78,10 +87,12 @@ class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(150), nullable=False)
     street_address = db.Column(db.String(200), nullable=False)
+    apartment_suite = db.Column(db.String(100), nullable=True) 
     city = db.Column(db.String(100), nullable=False)
     state_province = db.Column(db.String(100), nullable=True)
     postal_code = db.Column(db.String(20), nullable=False)
     country = db.Column(db.String(100), nullable=False)
+    phone_number = db.Column(db.String(50), nullable=True)
 
 class OrderProduct(db.Model):
     __tablename__ = 'order_products'
@@ -113,13 +124,16 @@ def get_products():
     products = Product.query.all()
     products_list = []
     for product in products:
+        image_urls = [url_for('static', filename=f'uploads/products/{image.filename}', _external=True) for image in product.images]
         product_data = {
             'id': product.id,
             'name': product.name,
             'price': product.price,
             'stock': product.stock,
-            'imageUrl': url_for('static', filename=f'uploads/products/{product.image_filename}', _external=True) if product.image_filename else None,
-            'description': product.description
+            'description': product.description,
+            'brand': product.brand,
+            'imageUrls': image_urls, 
+            'thumbnailUrl': image_urls[0] if image_urls else None 
         }
         products_list.append(product_data)
     return jsonify(products_list)
@@ -127,13 +141,16 @@ def get_products():
 @app.route('/api/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
     product = Product.query.get_or_404(product_id)
+    image_urls = [url_for('static', filename=f'uploads/products/{image.filename}', _external=True) for image in product.images]
     product_data = {
         'id': product.id,
         'name': product.name,
         'price': product.price,
         'stock': product.stock,
-        'imageUrl': url_for('static', filename=f'uploads/products/{product.image_filename}', _external=True) if product.image_filename else None,
-        'description': product.description
+        'description': product.description,
+        'brand': product.brand,
+        'imageUrls': image_urls,
+        'thumbnailUrl': image_urls[0] if image_urls else None
     }
     return jsonify(product_data)
 
@@ -163,7 +180,12 @@ def api_login():
         session['user_id'] = user.id
         session['is_admin'] = user.is_admin
         session.modified = True
-        return jsonify({"message": "Login successful!", "user": {"id": user.id, "username": user.username, "email": user.email, "is_admin": user.is_admin}}), 200
+        return jsonify({"message": "Login successful!", "user": {
+            "id": user.id, 
+            "username": user.username, 
+            "email": user.email, 
+            "is_admin": user.is_admin,
+            "phoneNumber": user.phone_number }}), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
@@ -212,13 +234,21 @@ def verify_order():
             new_address = Address(
                 full_name=shipping_address_data.get('fullName'),
                 street_address=shipping_address_data.get('streetAddress'),
+                apartment_suite=shipping_address_data.get('apartmentSuite'),
                 city=shipping_address_data.get('city'),
                 postal_code=shipping_address_data.get('postalCode'),
-                country=shipping_address_data.get('country'))
+                country=shipping_address_data.get('country'),
+                phone_number=shipping_address_data.get('phoneNumber')
+            )
             db.session.add(new_address)
             db.session.flush()
             new_order = Order(user_id=user_id, total=checkout_session.amount_total / 100.0, address_id=new_address.id)
             db.session.add(new_order)
+            
+            user = User.query.get(user_id)
+            if user and not user.phone_number:
+                user.phone_number = shipping_address_data.get('phoneNumber')            
+                
             for item in checkout_session.line_items.data:
                 product = Product.query.filter_by(name=item.price.product.name).first()
                 if product:
@@ -239,12 +269,27 @@ def verify_order():
 @api_login_required
 def get_my_orders():
     user_id = session.get('user_id')
-    user_orders = Order.query.filter_by(user_id=user_id).order_by(Order.date.desc()).all()
+    user_orders = Order.query.filter_by(user_id = user_id).order_by(Order.date.desc()).all()
     orders_list = []
     for order in user_orders:
-        order_data = {'id': order.id, 'date': order.date.strftime('%Y-%m-%d %H:%M'), 'total': order.total, 'shipping_address': order.address.street_address, 'products': []}
-        for item in order.products:
-            order_data['products'].append({'name': item.product.name, 'quantity': item.quantity, 'unit_price': item.unit_price})
+        address = order.address
+ 
+        shipping_info = {
+            'fullName': address.full_name,
+            'streetAddress': address.street_address,
+            'apartmentSuite': address.apartment_suite,
+            'city': address.city,
+            'postalCode': address.postal_code,
+            'country': address.country,
+            'phoneNumber': address.phone_number
+        }
+        order_data = {
+            'id': order.id,
+            'date': order.date.strftime('%Y-%m-%d %H:%M'),
+            'total': order.total,
+            'shippingInfo': shipping_info,
+            'products': [{'name': item.product.name, 'quantity': item.quantity, 'unit_price': item.unit_price} for item in order.products]
+        }
         orders_list.append(order_data)
     return jsonify(orders_list), 200
 
@@ -256,8 +301,7 @@ def get_user_profile():
     profile_data = {
         "username": user.username,
         "email": user.email,
-        # "phone_number": user.phone_number,  # Uncomment if User model has phone_number
-        # En el futuro, podríamos añadir full_name, phone_number, etc.
+        "phoneNumber": user.phone_number,
     }
     return jsonify(profile_data), 200
 
@@ -270,6 +314,7 @@ def update_user_profile():
     data = request.get_json()
     new_username = data.get('username')
     new_email = data.get('email')
+    new_phone_number = data.get('phoneNumber')
 
     # Validación: Asegurarse de que el nuevo username o email no estén ya en uso por OTRO usuario
     if new_username != user_to_update.username and User.query.filter_by(username=new_username).first():
@@ -279,6 +324,7 @@ def update_user_profile():
     
     user_to_update.username = new_username
     user_to_update.email = new_email
+    user_to_update.phone_number = new_phone_number
     
     db.session.commit()
     
@@ -287,9 +333,41 @@ def update_user_profile():
         "id": user_to_update.id,
         "username": user_to_update.username,
         "email": user_to_update.email,
-        "is_admin": user_to_update.is_admin
+        "is_admin": user_to_update.is_admin,
+        "phoneNumber": user_to_update.phone_number
     }
     return jsonify({"message": "Profile updated successfully!", "user": updated_user_data}), 200
+
+@app.route('/api/user/change-password', methods=['POST'])
+@api_login_required
+def change_password():
+    user_id = session.get('user_id')
+    user = User.query.get_or_404(user_id)
+    
+    data = request.get_json()
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+    confirm_password = data.get('confirmPassword')
+
+    # 1. Validación básica de los campos
+    if not all([current_password, new_password, confirm_password]):
+        return jsonify({"message": "All fields are required"}), 400
+
+    # 2. Verifica que la contraseña actual sea correcta
+    if not bcrypt.check_password_hash(user.password_hash, current_password):
+        return jsonify({"message": "Incorrect current password"}), 403 # 403 Forbidden
+    # 3. Comprueba si la nueva contraseña es la misma que la actual
+    if bcrypt.check_password_hash(user.password_hash, new_password):
+        return jsonify({"message": "New password cannot be the same as the current password"}), 400
+    # 4. Verifica que la nueva contraseña y la confirmación coincidan
+    if new_password != confirm_password:
+        return jsonify({"message": "New passwords do not match"}), 400
+
+    # 5. Hashea y guarda la nueva contraseña
+    user.password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.session.commit()
+
+    return jsonify({"message": "Password updated successfully!"}), 200
 
 # --- Admin Product Management API ---
 @app.route('/admin/product/new', methods=['POST'])
@@ -299,24 +377,33 @@ def create_product():
         return jsonify({"message": "Admin access required"}), 403
     if 'name' not in request.form or 'price' not in request.form or 'stock' not in request.form:
         return jsonify({"message": "Name, price, and stock are required fields."}), 400
-    product_name = request.form['name']
-    product_price = request.form['price']
-    product_stock = request.form['stock']
-    product_description = request.form.get('description', '')
-    saved_image_filename = None
-    if 'image' in request.files:
-        file = request.files.get('image')
+    new_product = Product(
+        name=request.form['name'],
+        price=float(request.form['price']),
+        stock=int(request.form['stock']),
+        description=request.form.get('description', ''),
+        brand=request.form.get('brand', '')
+    )
+    db.session.add(new_product)
+    db.session.flush()
+    
+    images = request.files.getlist('images')
+    
+    for file in images:
         if file and file.filename != '':
             extension = os.path.splitext(file.filename)[1].lower()
             unique_filename = f"{uuid.uuid4()}{extension}"
             filename = secure_filename(unique_filename)
+            
             upload_path = app.config['UPLOAD_FOLDER']
             os.makedirs(upload_path, exist_ok=True)
             save_path = os.path.join(upload_path, filename)
+            
             file.save(save_path)
-            saved_image_filename = filename
-    new_product = Product(name=product_name, price=float(product_price), stock=int(product_stock), image_filename=saved_image_filename, description=product_description)
-    db.session.add(new_product)
+            
+            # Create a new ProductImage record and link it to the new product
+            new_image = ProductImage(filename=filename, product_id=new_product.id)
+            db.session.add(new_image)
     db.session.commit()
     return jsonify({"message": "Product created successfully!", "productId": new_product.id}), 201
 
@@ -325,25 +412,30 @@ def create_product():
 def update_product(product_id):
     if not session.get('is_admin'):
         return jsonify({"message": "Admin access required"}), 403
+
     product_to_update = Product.query.get_or_404(product_id)
+    
+    # Update text fields
     product_to_update.name = request.form.get('name', product_to_update.name)
     product_to_update.price = float(request.form.get('price', product_to_update.price))
     product_to_update.stock = int(request.form.get('stock', product_to_update.stock))
     product_to_update.description = request.form.get('description', product_to_update.description)
-    if 'image' in request.files:
-        file = request.files.get('image')
+    product_to_update.brand = request.form.get('brand', product_to_update.brand)
+    
+    # Handle new images if they are uploaded
+    images = request.files.getlist('images')
+    for file in images:
         if file and file.filename != '':
-            if product_to_update.image_filename:
-                try:
-                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], product_to_update.image_filename))
-                except OSError as e:
-                    print(f"Error deleting old image file: {e}")
             extension = os.path.splitext(file.filename)[1].lower()
             unique_filename = f"{uuid.uuid4()}{extension}"
             filename = secure_filename(unique_filename)
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(save_path)
-            product_to_update.image_filename = filename
+            
+            # Add the new image to the product's list of images
+            new_image = ProductImage(filename=filename, product_id=product_to_update.id)
+            db.session.add(new_image)
+
     db.session.commit()
     return jsonify({"message": f"Product '{product_to_update.name}' updated successfully"}), 200
 
@@ -353,15 +445,53 @@ def delete_api_product(product_id):
     if not session.get('is_admin'):
         return jsonify({"message": "Admin access required"}), 403
     product_to_delete = Product.query.get_or_404(product_id)
-    if product_to_delete.image_filename:
+    for image in product_to_delete.images:
         try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], product_to_delete.image_filename))
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image.filename))
         except OSError as e:
             print(f"Error deleting image file: {e}")
     db.session.delete(product_to_delete)
     db.session.commit()
     return jsonify({"message": f"Product '{product_to_delete.name}' deleted successfully"}), 200
 
+# --- API: Admin Order Management ---
+@app.route('/api/admin/orders', methods=['GET'])
+@api_login_required
+def get_all_orders():
+    if not session.get('is_admin'):
+        return jsonify({"message": "Admin access required"}), 403
+
+    # Obtenemos todos los pedidos, ordenados por los más recientes primero
+    orders = Order.query.order_by(Order.date.desc()).all()
+
+    orders_list = []
+    for order in orders:
+        # Obtenemos el usuario asociado a cada pedido
+        user = User.query.get(order.user_id)
+        
+        order_data = {
+            'id': order.id,
+            'date': order.date.strftime('%Y-%m-%d %H:%M'),
+            'total': order.total,
+            'customer_name': user.username if user else 'Unknown', # Mostramos el nombre de usuario
+            'shipping_info': {
+                'full_name': order.address.full_name,
+                'address': order.address.street_address,
+                'apartment_suite': order.address.apartment_suite,
+                'city': order.address.city,
+                'country': order.address.country,
+                'postal_code': order.address.postal_code,
+                'phoneNumber': order.address.phone_number
+            },
+            'products': [{
+                'name': item.product.name,
+                'quantity': item.quantity,
+                'unit_price': item.unit_price
+            } for item in order.products]
+        }
+        orders_list.append(order_data)
+
+    return jsonify(orders_list), 200
 @app.route('/api/admin/test', methods=['POST'])
 @api_login_required
 def admin_test():

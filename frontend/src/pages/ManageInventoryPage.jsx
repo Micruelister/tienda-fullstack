@@ -1,5 +1,5 @@
 // =================================================================
-// FILE: ManageInventoryPage.jsx (FINAL VERSION WITH EDIT LINK)
+// FILE: ManageInventoryPage.jsx (CORRECTED & FINAL VERSION)
 // =================================================================
 
 import { useState, useEffect } from 'react';
@@ -16,17 +16,23 @@ function ManageInventoryPage() {
   // Effect to fetch all products when the component first loads
   useEffect(() => {
     const fetchProducts = async () => {
+      console.log("ManageInventory: 1. Starting to fetch products...");
       try {
         setLoading(true);
         const response = await axiosInstance.get('/api/products');
+        // --- CORRECCIÓN AQUÍ ---
+        // Ahora el Micrófono 2 muestra los datos reales que llegan de la API
+        console.log("ManageInventory: 2. Received data:", response.data);
+        
         if (!response.data) {
           throw new Error('Failed to fetch products');
         }
         setProducts(response.data);
       } catch (error) {
+        console.error("ManageInventory: 3. ERROR fetching products:", error.response || error);
         toast.error(error.message || "Could not load product data.");
-        console.error("Error fetching products:", error);
       } finally {
+        console.log("ManageInventory: 4. Finished fetching, setting loading to false.");
         setLoading(false);
       }
     };
@@ -68,7 +74,7 @@ function ManageInventoryPage() {
         </div>
       </div>
 
-      <div className={styles.tableContainer}> {/* Added a wrapper for potential horizontal scroll on small screens */}
+      <div className={styles.tableContainer}>
         <table className={styles.inventoryTable}>
           <thead>
             <tr>
@@ -83,14 +89,12 @@ function ManageInventoryPage() {
             {products.map(product => (
               <tr key={product.id}>
                 <td>
-                  <img src={product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} />
+                  <img src={product.thumbnailUrl || 'https://via.placeholder.com/150'} alt={product.name} />
                 </td>
                 <td>{product.name}</td>
                 <td>${product.price.toFixed(2)}</td>
                 <td>{product.stock}</td>
                 <td>
-                  {/* --- THIS IS THE KEY CHANGE --- */}
-                  {/* The "Edit" button is now a Link that navigates to the edit page */}
                   <Link 
                     to={`/admin/product/edit/${product.id}`} 
                     className={styles.actionButton}

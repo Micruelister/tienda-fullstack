@@ -1,5 +1,6 @@
 // =================================================================
-// FILE: ProductDetailPage.jsx (SCROLLABLE DESCRIPTION VERSION)
+// FILE: ProductDetailPage.jsx (FINAL VERSION WITH ENHANCED UI)
+// PURPOSE: Displays a detailed view of a single product with an image gallery.
 // =================================================================
 
 import { useState, useEffect } from 'react';
@@ -7,54 +8,75 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import axiosInstance from '../api/axiosInstance.js';
 import { toast } from 'react-toastify';
-import styles from './ProductDetailPage.module.css'; // Uses its own dedicated stylesheet
-import '../App.css'; // For the global .container class
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import styles from './ProductDetailPage.module.css';
+import '../App.css';
 
 function ProductDetailPage() {
-  // useParams gets the dynamic ':id' part from the URL
+  // useParams hook from React Router to get the dynamic ':id' from the URL.
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Get the addToCart function from our global CartContext
+  // Get the addToCart function from our global CartContext.
   const { addToCart } = useCart();
   
-  // State to hold the specific product's data
+  // State to hold the specific product's data fetched from the API.
   const [product, setProduct] = useState(null);
-  // State to handle the loading UI
+  // State for the main image shown in the gallery.
+  const [mainImage, setMainImage] = useState('');
+  // State for the quantity selector input.
+  const [quantity, setQuantity] = useState(1);
+  // State to manage the loading UI feedback.
   const [loading, setLoading] = useState(true);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  // This effect runs when the component mounts or when the 'id' in the URL changes
+  // This effect runs once when the component mounts or when the 'id' in the URL changes.
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         const response = await axiosInstance.get(`/api/products/${id}`);
         setProduct(response.data);
+
+        // When the product data arrives, set the first image as the main one.
+        if (response.data.imageUrls && response.data.imageUrls.length > 0) {
+          setMainImage(response.data.imageUrls[0]);
+        }
       } catch (error) {
         console.error("Error fetching product details:", error);
         toast.error("Could not find the requested product.");
-        navigate('/'); // Redirect user to homepage if product is not found
+        // If the product doesn't exist, redirect the user back to the homepage.
+        navigate('/');
       } finally {
         setLoading(false);
       }
     };
     
     fetchProduct();
-  }, [id, navigate]); // Dependencies for the effect
+  }, [id, navigate]); // Dependencies: re-run the effect if `id` or `navigate` changes.
 
-  // Handler function for the "Add to Cart" button click
+  // Handler for the "Add to Cart" button.
   const handleAddToCart = () => {
     if (product) {
-      addToCart(product);
+      addToCart(product, quantity); // Pass the selected quantity to the context.
     }
   };
 
-  // Show a loading message while the product data is being fetched
+  // Handler for the quantity input field.
+  const handleQuantityChange = (e) => {
+    // Ensure the value is a number and is at least 1.
+    const value = Math.max(1, parseInt(e.target.value) || 1);
+    // Also ensure the value does not exceed the available stock.
+    setQuantity(Math.min(value, product.stock));
+  };
+
+  // Render a loading message while data is being fetched.
   if (loading) {
-    return <main className="container"><p>Loading product details...</p></main>;
+    return <main className="container"><p style={{textAlign: 'center'}}>Loading product details...</p></main>;
   }
 
-  // Show a message if the product could not be found after fetching
+  // Render a "not found" message if the product couldn't be fetched.
   if (!product) {
     return (
       <main className="container" style={{textAlign: 'center'}}>
@@ -64,39 +86,77 @@ function ProductDetailPage() {
       </main>
     );
   }
-
-  // Once data is loaded, render the full page details
+  const slides = product.imageUrls ? product.imageUrls.map(url => ({ src: url })) : [];
+  // Render the full page with product details once data is available.
   return (
     <main className="container">
       <div className={styles.detailLayout}>
-        <div className={styles.imageContainer}>
-          <img src={product.imageUrl || 'https://via.placeholder.com/500'} alt={product.name} />
+        {/* --- IMAGE GALLERY SECTION --- */}
+        <div className={styles.gallery}>
+          <div className={styles.mainImageContainer}>
+            <img src={mainImage || 'https://via.placeholder.com/500'} alt={product.name} 
+            onClick={() => slides.length > 0 && setIsLightboxOpen(true)}
+          />
+            
+          </div>
+          <div className={styles.thumbnailContainer}>
+            {/* Map over all available image URLs to create clickable thumbnails */}
+            {product.imageUrls && product.imageUrls.map((url, index) => (
+              <img
+                key={index}
+                src={url}
+                alt={`${product.name} thumbnail ${index + 1}`}
+                // Apply an 'active' class if the thumbnail is the current main image
+                className={url === mainImage ? styles.activeThumbnail : styles.thumbnail}
+                // When a thumbnail is clicked, update the main image
+                onClick={() => setMainImage(url)}
+              />
+            ))}
+          </div>
         </div>
+
+        {/* --- PRODUCT INFORMATION SECTION --- */}
         <div className={styles.infoContainer}>
           <h2 className={styles.productTitle}>{product.name}</h2>
           <p className={styles.price}>${product.price ? product.price.toFixed(2) : '0.00'}</p>
           <p className={styles.stock}>
-            {product.stock > 0 ? `${product.stock} units remaining` : 'Out of Stock'}
+            {product.stock > 0 ? `${product.stock} units available` : ''}
           </p>
           <hr className={styles.divider} />
-          
-          {/* 
-            The product description is now rendered inside a simple paragraph.
-            The CSS class 'styles.description' will handle the scrolling box.
-          */}
           <p className={styles.description}>
             {product.description || 'No description available for this product.'}
           </p>
-          
-          <button 
-            onClick={handleAddToCart} 
-            className={styles.addToCartButton}
-            disabled={product.stock === 0}
-          >
-            {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-          </button>
+
+          {/* --- ACTIONS CONTAINER (QUANTITY + BUTTON) --- */}
+          <div className={styles.actionsContainer}>
+            {product.stock > 0 && ( // Only show quantity selector if in stock
+              <div className={styles.quantitySelector}>
+                <label htmlFor="quantity">Quantity:</label>
+                <input 
+                  type="number" 
+                  id="quantity" 
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                  min="1"
+                  max={product.stock}
+                />
+              </div>
+            )}
+            <button 
+              onClick={handleAddToCart} 
+              className={styles.addToCartButton}
+              disabled={product.stock === 0}
+            >
+              {product.stock > 0 ? `Add ${quantity} to Cart` : 'Out of Stock'}
+            </button>
+          </div>
         </div>
       </div>
+      <Lightbox
+        open={isLightboxOpen}
+        close={() => setIsLightboxOpen(false)}
+        slides={slides}
+      />      
     </main>
   );
 }
