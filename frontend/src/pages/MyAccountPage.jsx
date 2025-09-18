@@ -134,9 +134,9 @@ return (
         ) : (
           // SI NO estamos editando, muestra la información estática
           <div className={styles.viewInfo}>
-            <p><strong>Username:</strong><span> {profileData.username} </span></p> 
-            <p><strong>Email:</strong> <span>{profileData.email}</span></p>
-            <p><strong>Phone:</strong> <span>{profileData.phoneNumber || 'Not provided'}</span></p>
+            <strong>Username:</strong> <span>{user.username}</span>
+            <strong>Email:</strong> <span>{user.email}</span>
+            <strong>Phone:</strong> <span>{user.phoneNumber || 'Not provided'}</span>
           </div>
         )}
       </div>
@@ -230,11 +230,15 @@ return (
                   <span>Date: {order.date}</span>
                 </div>
                 <div className={styles.orderDetails}>
-                  <p><strong>Customer:</strong> {order.shippingInfo.fullName}</p>
-                  <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
-                  <div>
+                  <div className= {styles.detailColumn}>
+                    <strong>General Info:</strong>
+                    <span>Customer: {order.shippingInfo.fullName}</span>
+                    <span>Status: {order.status}</span>
+                    <span>Total: ${order.total.toFixed(2)}</span>
+                  </div>
+                  <div className={styles.detailColumn}>
                     <strong>Shipped to:</strong>
-                    <address className={styles.addressBlock}>
+                    <address className = {styles.addressBlock}>
                       {order.shippingInfo.fullName}<br />
                       {order.shippingInfo.streetAddress}<br />
                       {order.shippingInfo.apartmentSuite && <>{order.shippingInfo.apartmentSuite}<br /></>}
@@ -243,8 +247,8 @@ return (
                       {order.shippingInfo.phoneNumber || 'N/A'}
                     </address>
                   </div>
-                  <div className={styles.orderItems}>
-                    <h5>Items:</h5>
+                  <div className={`${styles.detailColumn} ${styles.orderItems}`}>
+                    <strong>Items:</strong>
                     <ul>
                       {order.products.map((product, index) => (
                         <li key={index}>
