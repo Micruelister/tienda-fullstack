@@ -2,7 +2,7 @@
 // FILE: CheckoutPage.jsx (ABSOLUTELY 100% COMPLETE - FINAL VERSION)
 // =================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCart } from '../context/CartContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import axiosInstance from '../api/axiosInstance.js';
@@ -12,6 +12,7 @@ import { getAlpha2Code as getCountryCodeByName } from 'iso-country-converter';
 
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css'; 
+import FormField from '../components/forms/FormFields.jsx';
 
 // --- Component Imports ---
 import GooglePlacesAutocomplete from '../components/forms/GooglePlacesAutocomplete.jsx';
@@ -51,15 +52,9 @@ function CheckoutPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [countryCode, setCountryCode] = useState(undefined);
-  useEffect(() => {
-    if (address.country) {
-      const code = getCountryCode(address.country);
-      setCountryCode(code);
-    } else {
-      setCountryCode(undefined);
-    }
-  }, [address.country]);  
+  const countryCode = useMemo(() => {
+    return getCountryCode(address.country);
+  }, [address.country]);
 
   // --- EVENT HANDLERS ---
 
@@ -145,8 +140,10 @@ const handleCheckout = async () => {
       </main>
     );
   }
-
-  const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const totalPrice = useMemo(() => {
+  console.log("Calculating total price...");
+  return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  }, [cartItems]);
 
   return (
     <main className="container">
@@ -155,49 +152,49 @@ const handleCheckout = async () => {
         <div className={styles.orderDetails}>
           <h3>Shipping Information</h3>
           <div className={styles.addressForm}>
-            <div className={styles.formGroup}>
-
-              <label htmlFor="fullName">Full Name</label>
-              <input type="text" id="fullName" name="fullName" value={address.fullName} onChange={handleInputChange} required />
-            </div>
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="streetAddress">Street Address</label>
-              <GooglePlacesAutocomplete onSelect={handleAddressSelect} />
-            </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="apartmentSuite">Apartment, suite, etc. (optional)</label>
-              <input
-                type="text"
-                id="apartmentSuite"
-                name="apartmentSuite"
-                value={address.apartmentSuite}
+              <FormField
+              label="Full Name"
+              id="fullName"
+              name="fullName"
+              value={address.fullName}
+              onChange={handleInputChange}
+              required
+              />
+          <div className={styles.formGroup}>
+            <label htmlFor="streetAddress">Street Address</label>
+            <GooglePlacesAutocomplete onSelect={handleAddressSelect} />
+          </div>
+            <div className={styles.formRow}>
+              <FormField
+                label="City"
+                id="city"
+                name="city"
+                value={address.city}
                 onChange={handleInputChange}
+                required
+              />
+                <FormField
+                label="Postal Code"
+                id="postalCode"
+                name="postalCode"
+                value={address.postalCode}
+                onChange={handleInputChange}
+                required
               />
             </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="city">City</label>
-                <input type="text" id="city" name="city" value={address.city} onChange={handleInputChange} required />
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="postalCode">Postal Code</label>
-                <input type="text" id="postalCode" name="postalCode" value={address.postalCode} onChange={handleInputChange} required />
-              </div>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label htmlFor="country">Country</label>
-              <input type="text" id="country" name="country" value={address.country} onChange={handleInputChange} required />
-            </div>
+            <FormField
+              label="Country"
+              id="country"
+              name="country"
+              value={address.country}
+              onChange={handleInputChange}
+              required
+            />
             <div className={styles.formGroup}>
               <label htmlFor="phoneNumber">Phone Number</label>
               <PhoneInput
                 id="phoneNumber"
-                name="phoneNumber"
                 country={countryCode}
-                placeholder="Enter phone number"
                 value={address.phoneNumber}
                 onChange={handlePhoneChange}
                 className={styles.phoneInput}
