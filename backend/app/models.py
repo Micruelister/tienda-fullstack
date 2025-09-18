@@ -55,7 +55,7 @@ class Order(db.Model):
     total = db.Column(db.Float, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     address_id = db.Column(db.Integer, db.ForeignKey('addresses.id'), nullable=False)
-    address = db.relationship('Address', backref='order', uselist=False)
+    address = db.relationship('Address', backref=db.backref('orders', lazy='dynamic'), uselist=False)
     products = db.relationship('OrderProduct', backref='order', lazy=True)
 
 class Address(db.Model):
@@ -77,4 +77,4 @@ class OrderProduct(db.Model):
     unit_price = db.Column(db.Float, nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    product = db.relationship('Product', backref='orders', lazy=True)
+    product = db.relationship('Product', backref='order_products', lazy=True)

@@ -2,8 +2,9 @@ from flask import Blueprint, jsonify, request, session, current_app
 import stripe
 
 from ..extensions import db
-from ..models import Product, Order, OrderProduct, Address, User
+from ..models import Product, Order
 from .. import api_login_required
+from ..services.order_service import OrderService
 
 orders_bp = Blueprint('orders_bp', __name__)
 
@@ -11,29 +12,36 @@ orders_bp = Blueprint('orders_bp', __name__)
 @api_login_required
 def create_checkout_session():
     data = request.get_json()
-    cart_items = data.get('cartItems')
-    shipping_address = data.get('shippingAddress')
+    cart_items = data.get('cartItems') # Expects a list of {'id': product_id, 'quantity': ...}
 
-    if not cart_items or not shipping_address:
-        return jsonify({"message": "Cart items or shipping address is missing"}), 400
-
-    session['shipping_address'] = shipping_address
-
-    # Use the frontend domain from config
-    frontend_domain = current_app.config['CORS_ORIGINS'].split(',')[0]
+    if not cart_items:
+        return jsonify({"message": "Cart items are missing"}), 400
 
     line_items = []
-    for item in cart_items:
-        line_items.append({
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {
-                    'name': item['name'],
+    try:
+        for item in cart_items:
+            product = Product.query.get(item['id'])
+            if not product:
+                return jsonify({"message": f"Product with id {item['id']} not found."}), 404
+            if product.stock < item['quantity']:
+                return jsonify({"message": f"Insufficient stock for {product.name}. Only {product.stock} left."}), 400
+
+            line_items.append({
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': product.name,
+                        # Pass product ID in metadata for reliable lookup on webhook/verification
+                        'metadata': {'product_id': product.id}
+                    },
+                    'unit_amount': int(product.price * 100), # Use server-side price
                 },
-                'unit_amount': int(item['price'] * 100),
-            },
-            'quantity': item['quantity'],
-        })
+                'quantity': item['quantity'],
+            })
+    except (KeyError, TypeError):
+        return jsonify({"message": "Invalid cart item format. Expected {'id': ..., 'quantity': ...}"}), 400
+
+    frontend_domain = current_app.config['CORS_ORIGINS'].split(',')[0]
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -45,6 +53,7 @@ def create_checkout_session():
         )
         return jsonify({'url': checkout_session.url})
     except Exception as e:
+        current_app.logger.error(f"Stripe session creation failed: {e}")
         return jsonify(error=str(e)), 500
 
 @orders_bp.route('/order/verify', methods=['POST'])
@@ -52,62 +61,32 @@ def create_checkout_session():
 def verify_order():
     data = request.get_json()
     session_id = data.get('sessionId')
+    shipping_address_data = data.get('shippingAddress') # Get address from request body
     user_id = session.get('user_id')
-    shipping_address_data = session.get('shipping_address')
 
     if not all([session_id, user_id, shipping_address_data]):
-        return jsonify({"message": "Critical information is missing to verify the order"}), 400
+        return jsonify({"message": "Critical information (sessionId, userId, or shippingAddress) is missing"}), 400
 
     try:
         checkout_session = stripe.checkout.Session.retrieve(session_id, expand=["line_items.data.price.product"])
-        if checkout_session.payment_status == "paid":
-            # Create and save the address
-            new_address = Address(
-                full_name=shipping_address_data['fullName'],
-                street_address=shipping_address_data['streetAddress'],
-                apartment_suite=shipping_address_data.get('apartmentSuite'),
-                city=shipping_address_data['city'],
-                postal_code=shipping_address_data['postalCode'],
-                country=shipping_address_data['country'],
-                phone_number=shipping_address_data.get('phoneNumber')
-            )
-            db.session.add(new_address)
-            db.session.flush() # Flush to get the new_address.id
-
-            # Create the order
-            new_order = Order(
-                user_id=user_id,
-                total=checkout_session.amount_total / 100.0,
-                address_id=new_address.id
-            )
-            db.session.add(new_order)
-
-            # Update user's phone number if it's missing
-            user = User.query.get(user_id)
-            if user and not user.phone_number:
-                user.phone_number = shipping_address_data.get('phoneNumber')
-
-            # Create order-product associations and update stock
-            for item in checkout_session.line_items.data:
-                product = Product.query.filter_by(name=item.price.product.name).first()
-                if product:
-                    order_product = OrderProduct(
-                        order=new_order,
-                        product_id=product.id,
-                        quantity=item.quantity,
-                        unit_price=item.price.unit_amount / 100.0
-                    )
-                    db.session.add(order_product)
-                    product.stock -= item.quantity
-
-            db.session.commit()
-            session.pop('shipping_address', None)
-            return jsonify({"message": "Purchase verified and order saved successfully"}), 200
-        else:
+        if checkout_session.payment_status != "paid":
             return jsonify({"message": "Payment not successful according to Stripe"}), 402
+
+        address = OrderService.create_address(shipping_address_data)
+        order = OrderService.create_order(user_id, checkout_session.amount_total / 100.0, address.id)
+        OrderService.update_user_phone(user_id, shipping_address_data.get('phoneNumber'))
+        OrderService.process_line_items(order, checkout_session.line_items.data)
+
+        db.session.commit()
+        return jsonify({"message": "Purchase verified and order saved successfully"}), 200
+    except ValueError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Order verification failed due to value error: {e}")
+        return jsonify(error=str(e)), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify(error=str(e)), 500
+        current_app.logger.error(f"An unexpected error occurred during order verification: {e}")
+        return jsonify(error="An internal error occurred. Please try again."), 500
 
 @orders_bp.route('/my-orders', methods=['GET'])
 @api_login_required

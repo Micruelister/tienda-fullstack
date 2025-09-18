@@ -65,6 +65,10 @@ def update_user_profile():
     new_email = data.get('email')
     new_phone_number = data.get('phoneNumber')
 
+    # Add validation for empty strings
+    if not new_username or not new_email:
+        return jsonify({"message": "Username and email cannot be empty"}), 400
+
     if new_username != user_to_update.username and User.query.filter_by(username=new_username).first():
         return jsonify({"message": "Username already taken"}), 409
     if new_email != user_to_update.email and User.query.filter_by(email=new_email).first():

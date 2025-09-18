@@ -20,15 +20,15 @@ def make_shell_context():
 @click.argument('password')
 def create_admin(password):
     """Creates a default admin user."""
-    admin_user = User.query.filter_by(username='admin').first()
-    if not admin_user:
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        admin_user = User(username='admin', email='admin@example.com', password_hash=hashed_password, is_admin=True)
-        db.session.add(admin_user)
-        db.session.commit()
-        print('Admin user "admin" created successfully.')
-    else:
+    if User.query.filter_by(username='admin').first():
         print('Admin user "admin" already exists.')
+        return
+
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    admin_user = User(username='admin', email='admin@example.com', password_hash=hashed_password, is_admin=True)
+    db.session.add(admin_user)
+    db.session.commit()
+    print('Admin user "admin" created successfully.')
 
 if __name__ == '__main__':
     # The application is run through the 'flask run' command,

@@ -13,6 +13,21 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
+def save_product_images(files, product_id):
+    """Helper function to save product images."""
+    images_to_add = []
+    for file in files:
+        if file and file.filename != '' and allowed_file(file.filename):
+            extension = os.path.splitext(file.filename)[1].lower()
+            unique_filename = f"{uuid.uuid4()}{extension}"
+            filename = secure_filename(unique_filename)
+
+            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(save_path)
+
+            images_to_add.append(ProductImage(filename=filename, product_id=product_id))
+    return images_to_add
+
 @admin_bp.route('/product/new', methods=['POST'])
 @admin_required
 def create_product():
@@ -29,18 +44,9 @@ def create_product():
     db.session.add(new_product)
     db.session.flush()
 
-    images = request.files.getlist('images')
-    for file in images:
-        if file and file.filename != '' and allowed_file(file.filename):
-            extension = os.path.splitext(file.filename)[1].lower()
-            unique_filename = f"{uuid.uuid4()}{extension}"
-            filename = secure_filename(unique_filename)
-
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-
-            new_image = ProductImage(filename=filename, product_id=new_product.id)
-            db.session.add(new_image)
+    new_images = save_product_images(request.files.getlist('images'), new_product.id)
+    if new_images:
+        db.session.add_all(new_images)
 
     db.session.commit()
     return jsonify({"message": "Product created successfully!", "productId": new_product.id}), 201
@@ -56,17 +62,9 @@ def update_product(product_id):
     product_to_update.description = request.form.get('description', product_to_update.description)
     product_to_update.brand = request.form.get('brand', product_to_update.brand)
 
-    images = request.files.getlist('images')
-    for file in images:
-        if file and file.filename != '' and allowed_file(file.filename):
-            extension = os.path.splitext(file.filename)[1].lower()
-            unique_filename = f"{uuid.uuid4()}{extension}"
-            filename = secure_filename(unique_filename)
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-
-            new_image = ProductImage(filename=filename, product_id=product_to_update.id)
-            db.session.add(new_image)
+    new_images = save_product_images(request.files.getlist('images'), product_to_update.id)
+    if new_images:
+        db.session.add_all(new_images)
 
     db.session.commit()
     return jsonify({"message": f"Product '{product_to_update.name}' updated successfully"}), 200
@@ -80,7 +78,7 @@ def delete_product(product_id):
         try:
             os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], image.filename))
         except OSError as e:
-            print(f"Error deleting image file: {e}") # Consider logging this instead
+            current_app.logger.error(f"Error deleting image file {image.filename}: {e}")
 
     db.session.delete(product_to_delete)
     db.session.commit()

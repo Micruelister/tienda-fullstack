@@ -17,7 +17,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'None'
 
     # Carpeta de subida de archivos
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__name__)), 'app/static/uploads/products')
+    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'app', 'static', 'uploads', 'products')
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
 
