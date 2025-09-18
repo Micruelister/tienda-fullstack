@@ -3,27 +3,27 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-// Este componente recibirá una prop 'adminOnly' para saber si es solo para administradores
 function ProtectedRoute({ adminOnly = false }) {
-  const { user } = useAuth(); // Leemos el usuario de nuestra pizarra mágica
+  const { user, loading } = useAuth();
 
-  // CASO 1: La ruta requiere que seas admin, pero no lo eres o no has iniciado sesión.
+  // Mientras se verifica la sesión, no renderizamos nada para evitar parpadeos.
+  if (loading) {
+    return null; // O un componente de Spinner/Cargando...
+  }
+
+  // Después de cargar, verificamos los permisos.
+
+  // CASO 1: Ruta de admin, pero el usuario no es admin o no está logueado.
   if (adminOnly && (!user || !user.is_admin)) {
-    // Te redirigimos a la página principal.
-    // Podríamos también redirigir a una página de "Acceso Denegado".
     return <Navigate to="/" replace />;
   }
 
-  // CASO 2: La ruta requiere que inicies sesión, pero no lo has hecho.
-  if (!adminOnly && !user) {
-    // Te redirigimos a la página de login.
-    // 'replace' evita que el usuario pueda volver a la página protegida con el botón de "atrás".
+  // CASO 2: Ruta protegida normal, pero el usuario no está logueado.
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // CASO 3: ¡Tienes permiso!
-  // El componente <Outlet /> es un marcador de posición especial de React Router
-  // que dice: "Renderiza aquí el componente hijo que corresponda a esta ruta".
+  // CASO 3: El usuario tiene los permisos necesarios.
   return <Outlet />;
 }
 

@@ -117,9 +117,11 @@ const handleCheckout = async () => {
 
     setLoading(true);
     try {
+      // Store shipping address in session storage to retrieve on the success page
+      sessionStorage.setItem('shippingAddress', JSON.stringify(address));
+
       const response = await axiosInstance.post('/api/create-checkout-session', {
-        cartItems,
-        shippingAddress: address,
+        cartItems: cartItems.map(item => ({ id: item.id, quantity: item.quantity })),
       });
       window.location.href = response.data.url;
     } catch (error) {

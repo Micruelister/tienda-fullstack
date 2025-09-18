@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # Mount the static files volume to persist uploads
+      - backend_static:/app/app/static/uploads/products
+    # The backend depends on a database, but for SQLite, it's self-contained.
+    # If using PostgreSQL, you would add a 'db' service and 'depends_on'.
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Pass build-time arguments to the Dockerfile
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend_static:

@@ -31,13 +31,18 @@ function OrderSuccessPage() {
         }
 
         try {
-          await axiosInstance.post('/api/order/verify', { sessionId });
+          const shippingAddress = JSON.parse(sessionStorage.getItem('shippingAddress'));
+          if (!shippingAddress) {
+            throw new Error("Shipping address not found. Cannot verify purchase.");
+          }
+          await axiosInstance.post('/api/order/verify', { sessionId, shippingAddress });
           // Clear the cart from the frontend state and localStorage
           clearCart();
         } catch (err) {
-          const errorMessage = err.response?.data?.message || "Failed to verify your purchase.";
+          const errorMessage = err.response?.data?.message || err.message || "Failed to verify your purchase.";
           setError(errorMessage);
         } finally {
+          sessionStorage.removeItem('shippingAddress');
           setLoading(false);
         }
       };
